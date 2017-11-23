@@ -48,7 +48,6 @@
         android:layout_marginLeft="12dp"
         android:layout_marginStart="12dp"
         android:layout_toEndOf="@+id/concat0"
-        android:layout_toRightOf="@+id/concat0"
-        android:text="asd" />
+        android:layout_toRightOf="@+id/concat0" />
 
 </RelativeLayout>

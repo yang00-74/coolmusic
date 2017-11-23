@@ -8,12 +8,25 @@ public class Song {
     private String songName;
     private String artist;
     private String desc;
+    private String fileUrl;
+
+    public Song() {
+    }
 
     public Song(String songName, String artist, String desc) {
         this.songName = songName;
         this.artist = artist;
         this.desc = desc;
     }
+
+    public String getFileUrl() {
+        return fileUrl;
+    }
+
+    public void setFileUrl(String fileUrl) {
+        this.fileUrl = fileUrl;
+    }
+
 
     public String getSongName() {
         return songName;
