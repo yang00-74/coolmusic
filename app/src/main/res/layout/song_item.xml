@@ -27,7 +27,7 @@
         android:layout_below="@+id/song_name"
         android:layout_marginTop="28dp"
 
-        android:textColor="#d8e0" />
+        android:textColor="@color/color_artist" />
 
     <TextView
         android:id="@+id/concat0"
@@ -38,7 +38,7 @@
         android:layout_marginStart="12dp"
         android:layout_toEndOf="@+id/song_artist"
         android:layout_toRightOf="@+id/song_artist"
-        android:text=":" />
+        android:text="-" />
 
     <TextView
         android:id="@+id/song_desc"

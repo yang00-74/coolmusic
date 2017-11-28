@@ -1,4 +1,9 @@
 <resources>
     <string name="app_name">SongList</string>
-    <string name="_12uyfdkghksdfhgsdfgdhlsiudfhvlsdjfldufhvlsiudfhv3">asd</string>
+    <string name="start_">播放</string>
+    <string name="stop_">停止</string>
+    <string name="preview_">上一曲</string>
+    <string name="next_">下一曲</string>
+    <string name="song_title">歌名</string>
+    <string name="time">时长</string>
 </resources>

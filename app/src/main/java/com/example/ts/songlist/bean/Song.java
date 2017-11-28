@@ -1,4 +1,4 @@
-package com.example.ts.songlist;
+package com.example.ts.songlist.bean;
 
 /**
  * Created by ts on 17-11-22.
@@ -9,14 +9,14 @@ public class Song {
     private String artist;
     private String desc;
     private String fileUrl;
+    private int  size;
 
-    public Song() {
+    public int getSize() {
+        return size;
     }
 
-    public Song(String songName, String artist, String desc) {
-        this.songName = songName;
-        this.artist = artist;
-        this.desc = desc;
+    public void setSize(int size) {
+        this.size = size;
     }
 
     public String getFileUrl() {
@@ -50,5 +50,10 @@ public class Song {
 
     public void setDesc(String desc) {
         this.desc = desc;
+    }
+
+    @Override
+    public String toString() {
+        return super.toString();
     }
 }
