@@ -12,13 +12,13 @@ import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.Button;
-import android.widget.ProgressBar;
+import android.widget.SeekBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
 import com.example.ts.songlist.bean.Song;
-import com.example.ts.songlist.service.MyService;
-import com.example.ts.songlist.utils.AudioUtils;
+import com.example.ts.songlist.service.MusicService;
+import com.example.ts.songlist.utils.AudioUtil;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -30,10 +30,11 @@ public class MusicActivity extends AppCompatActivity implements View.OnClickList
 
     private MediaPlayer mediaPlayer = new MediaPlayer();
     private Intent intent;
-    private ProgressBar progressBar;
+    private SeekBar seekBar;
     private boolean mIsRunning = true;
     private List<Song> mSongList = new ArrayList<>();
     private int mCurrent;//记录当前在播放的音乐在列表中的下标
+    private int mProgress;//记录seekBar拖动到的位置
 
     private Handler mHandler = new Handler() {
         @Override
@@ -41,9 +42,11 @@ public class MusicActivity extends AppCompatActivity implements View.OnClickList
             switch (msg.what) {
                 case WHAT_UPDATE_PROGRESS:
                     if (mIsRunning) {
-                        double current = mediaPlayer.getCurrentPosition();
-                        double total = mediaPlayer.getDuration();
-                        progressBar.setProgress((int) (current / total * 1000d));
+                        //更新进度条
+                        long current = mediaPlayer.getCurrentPosition();
+                        long total = mediaPlayer.getDuration();
+                        seekBar.setMax((int) total);
+                        seekBar.setProgress((int) current);
                     }
                     break;
                 default:
@@ -60,7 +63,7 @@ public class MusicActivity extends AppCompatActivity implements View.OnClickList
         //获取intent对象，并在此处再次实现对歌曲文件的查询
         intent = getIntent();
         mCurrent = intent.getIntExtra("position", 0);
-        mSongList = AudioUtils.getAllSongs(MusicActivity.this.getContentResolver());
+        mSongList = AudioUtil.getAllSongs(MusicActivity.this.getContentResolver());
 
         //获取button对象，并添加点击事件
         Button start = (Button) findViewById(R.id.start_button);
@@ -79,7 +82,24 @@ public class MusicActivity extends AppCompatActivity implements View.OnClickList
         Button startService = (Button) findViewById(R.id.start_service);
         startService.setOnClickListener(this);
 
-        progressBar = (ProgressBar) findViewById(R.id.progressBar);
+        seekBar= (SeekBar) findViewById(R.id.mySeekBar1);
+        seekBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+            @Override
+            public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
+                 if(fromUser==true){
+                    mProgress=progress;//设置变量记录进度，在完成的方法里实现音乐拖动，无卡顿
+                 }
+            }
+
+            @Override
+            public void onStartTrackingTouch(SeekBar seekBar) {
+
+            }
+            @Override
+            public void onStopTrackingTouch(SeekBar seekBar) {
+                mediaPlayer.seekTo(mProgress);
+            }
+        });
 
         if (ContextCompat.checkSelfPermission(MusicActivity.this, android.Manifest.permission.WRITE_EXTERNAL_STORAGE) !=
                 PackageManager.PERMISSION_GRANTED) {
@@ -91,6 +111,7 @@ public class MusicActivity extends AppCompatActivity implements View.OnClickList
 
     }
 
+    //按钮事件处理
     @Override
     public void onClick(View v) {
         switch (v.getId()) {
@@ -100,6 +121,21 @@ public class MusicActivity extends AppCompatActivity implements View.OnClickList
 
                     mIsRunning = true;
                     new ProgressThread().start();
+                   //实现自动下一首逻辑
+                    mediaPlayer.setOnCompletionListener(new MediaPlayer.OnCompletionListener() {
+                        @Override
+                        public void onCompletion(MediaPlayer mp) {
+                            if (mCurrent < mSongList.size() - 1) {
+                                mCurrent += 1;
+                                mediaPlayer.reset();
+                                initMediaPlayer();
+                                mediaPlayer.start();
+                                new ProgressThread().start();
+                            } else {
+                                Toast.makeText(MusicActivity.this, "没有下一首了", Toast.LENGTH_SHORT).show();
+                            }
+                        }
+                    });
 
                 } else {
                     mediaPlayer.pause();
@@ -137,9 +173,12 @@ public class MusicActivity extends AppCompatActivity implements View.OnClickList
 
             //开始服务事件
             case R.id.start_service:
-                Intent satrt = new Intent(this, MyService.class);
-                startService(satrt);
-               // stopService(new Intent(this, MyService.class));
+                Intent start = new Intent(this, MusicService.class);
+
+                start.putExtra("position",mCurrent);
+
+                startService(start);
+               // stopService(new Intent(this, MusicService.class));
 
                 break;
             default:
@@ -161,7 +200,7 @@ public class MusicActivity extends AppCompatActivity implements View.OnClickList
                 break;
         }
     }
-
+    //完成音乐初始化，并显示歌曲时长等静态信息
     private void initMediaPlayer() {
         try {
             Song currentSong = mSongList.get(mCurrent);
@@ -180,6 +219,9 @@ public class MusicActivity extends AppCompatActivity implements View.OnClickList
                 sec = seconds.toString();
             }
             size.setText(min + ":" + sec);
+
+
+
             //显示歌名
             TextView songTitle = (TextView) findViewById(R.id.song_title);
             songTitle.setText(currentSong.getSongName());

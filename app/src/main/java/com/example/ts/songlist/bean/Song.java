@@ -1,10 +1,12 @@
 package com.example.ts.songlist.bean;
 
+import java.io.Serializable;
+
 /**
  * Created by ts on 17-11-22.
  */
 
-public class Song {
+public class Song implements Serializable{
     private String songName;
     private String artist;
     private String desc;

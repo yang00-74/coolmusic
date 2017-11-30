@@ -14,7 +14,7 @@ import java.util.ArrayList;
  * 用于获取手机中所有歌曲的信息
  */
 
-public class AudioUtils {
+public class AudioUtil {
 
     public static ArrayList<Song> getAllSongs(ContentResolver contentResolver) {
 
@@ -22,15 +22,15 @@ public class AudioUtils {
         Uri uri = MediaStore.Audio.Media.EXTERNAL_CONTENT_URI;
 
         String[] columns = {MediaStore.Audio.Media._ID,
-                MediaStore.Audio.Media.DISPLAY_NAME,
-                MediaStore.Audio.Media.TITLE,
-                MediaStore.Audio.Media.DURATION,
-                MediaStore.Audio.Media.ARTIST,
-                MediaStore.Audio.Media.ALBUM,
-                MediaStore.Audio.Media.YEAR,
-                MediaStore.Audio.Media.MIME_TYPE,
-                MediaStore.Audio.Media.SIZE,
-                MediaStore.Audio.Media.DATA};
+                MediaStore.Audio.Media.DISPLAY_NAME,//文件名
+                MediaStore.Audio.Media.TITLE,//歌曲名
+                MediaStore.Audio.Media.DURATION,//时长
+                MediaStore.Audio.Media.ARTIST,//歌手
+                MediaStore.Audio.Media.ALBUM,//专辑
+                MediaStore.Audio.Media.YEAR,//年份
+                MediaStore.Audio.Media.MIME_TYPE,//类型
+                MediaStore.Audio.Media.SIZE,//文件类型
+                MediaStore.Audio.Media.DATA};//文件路径url
 
         String sql = MediaStore.Audio.Media.MIME_TYPE + "=? or "
                 + MediaStore.Audio.Media.MIME_TYPE + "=? ";
@@ -48,8 +48,7 @@ public class AudioUtils {
 
             do {
                 song = new Song();
-                // 文件名
-                //  song.setFileName(cursor.getString(greenLeaf));
+
                 // 歌曲名
                 String songName = cursor.getString(2);
                 //歌手名
@@ -67,22 +66,6 @@ public class AudioUtils {
                 song.setDesc(desc);
 
 
-/*                if (pattenr == null || pattenr.equals("")) {
-                    song.setSongName(songName);
-                    // 歌手名
-                    song.setArtist(artist);
-                    // 专辑名
-                    song.setDesc(desc);
-                } else if (songName.contains(pattenr) || artist.contains(pattenr)) {
-                    song.setSongName(songName);
-                    // 歌手名
-                    song.setArtist(artist);
-                    // 专辑名
-                    song.setDesc(desc);
-                } else {
-                    continue;
-                }
- */
                 // 时长
 //                // song.setDuration(cursor.getInt(3));
 //                // 年代
@@ -148,8 +131,7 @@ public class AudioUtils {
 
             do {
                 song = new Song();
-                // 文件名
-                //  song.setFileName(cursor.getString(greenLeaf));
+
                 // 歌曲名
                 String songName = cursor.getString(2);
                 //歌手名

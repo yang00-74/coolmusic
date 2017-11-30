@@ -9,7 +9,7 @@ import android.widget.AdapterView;
 import android.widget.ListView;
 
 import com.example.ts.songlist.bean.Song;
-import com.example.ts.songlist.utils.AudioUtils;
+import com.example.ts.songlist.utils.AudioUtil;
 import com.example.ts.songlist.views.ClearTextView;
 
 import java.util.ArrayList;
@@ -30,7 +30,7 @@ public class SearchActivity extends AppCompatActivity {
         mListView = (ListView) findViewById(R.id.list_view);
         mSearchText = (ClearTextView) findViewById(R.id.search);
 
-        songList = AudioUtils.getAllSongs(SearchActivity.this.getContentResolver());
+        songList = AudioUtil.getAllSongs(SearchActivity.this.getContentResolver());
 
         SongAdapter adapter = new SongAdapter(SearchActivity.this, R.layout.song_item, songList);
 
@@ -41,8 +41,8 @@ public class SearchActivity extends AppCompatActivity {
             @Override
             public void afterTextChanged(Editable s) {
 
-                String partten = s.toString();
-                songList = AudioUtils.getAllSongs(SearchActivity.this.getContentResolver(), partten);
+                String pattner = s.toString();
+                songList = AudioUtil.getAllSongs(SearchActivity.this.getContentResolver(), pattner);
 
                 SongAdapter adapter = new SongAdapter(SearchActivity.this, R.layout.song_item, songList);
                 mListView.setAdapter(adapter);
@@ -56,7 +56,6 @@ public class SearchActivity extends AppCompatActivity {
                 Intent intent=new Intent(SearchActivity.this,MusicActivity.class);
 
                 intent.putExtra("position",position);
-
                 startActivity(intent);
             }
         });
