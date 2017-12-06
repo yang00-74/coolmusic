@@ -15,6 +15,8 @@ public class LogUtil {
     public static final int NOTHING = 6;//设置level为NOTHING什么都不打印
     public static final int level = VERBOSE;
 
+    private static final String TAG = "asdasd";
+
     public static void v(String tag, String msg) {
         if (level <= VERBOSE) {
             Log.v(tag, msg);

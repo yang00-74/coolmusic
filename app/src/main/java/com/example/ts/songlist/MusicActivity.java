@@ -1,10 +1,11 @@
 package com.example.ts.songlist;
 
+import android.annotation.SuppressLint;
 import android.content.ComponentName;
 import android.content.Intent;
 import android.content.ServiceConnection;
 import android.content.pm.PackageManager;
-import android.media.MediaPlayer;
+import android.os.Bundle;
 import android.os.Handler;
 import android.os.IBinder;
 import android.os.Message;
@@ -12,7 +13,7 @@ import android.support.annotation.NonNull;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AppCompatActivity;
-import android.os.Bundle;
+import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.SeekBar;
@@ -21,47 +22,81 @@ import android.widget.Toast;
 
 import com.example.ts.songlist.bean.Song;
 import com.example.ts.songlist.service.MusicService;
-import com.example.ts.songlist.utils.AudioUtil;
 import com.example.ts.songlist.utils.LogUtil;
 
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
+import java.io.Serializable;
 
+public class MusicActivity extends AppCompatActivity implements View.OnClickListener, Serializable {
+    private final int WHAT_UPDATE_PROGRESS = 0;
+    private final int WHAT_START_SERVICE = 1;
 
-public class MusicActivity extends AppCompatActivity implements View.OnClickListener {
-    private static final int WHAT_UPDATE_PROGRESS = 0;
-
-    private MusicService musicService;
-    private MusicService.MusicBinder musicBinder;
-    private SeekBar seekBar;
+    private MusicService.MusicBinder mMusicBinder;
+    private SeekBar mMusicProgressSeekBar;
     private boolean mIsRunning = true;
-    private List<Song> mSongList = new ArrayList<>();
-    private int mCurrent;//记录当前在播放的音乐在列表中的下标
+    private int mProgress;
+    private Song mSong;
 
     private ServiceConnection connection = new ServiceConnection() {
         @Override
         public void onServiceConnected(ComponentName name, IBinder service) {
-            musicBinder = (MusicService.MusicBinder) service;
-            musicService=musicBinder.getMusicService();
+            mMusicBinder = (MusicService.MusicBinder) service;
+
+            LogUtil.d("Activity绑定上了","123asd");
+
+            mMusicBinder.getMusicService().setCurrentMusicListener(new MusicService.CurrentMusicListener() {
+
+                @Override
+                public void onProgressChange(int progress, int max) {
+                    LogUtil.d("Activity开始赋值mProgress","123asd");
+                    mProgress = progress;
+
+                    Message msg = Message.obtain(mHandler, WHAT_UPDATE_PROGRESS);
+                    msg.arg1 = progress;
+                    msg.arg2 = max;
+                    msg.sendToTarget();
+
+                   LogUtil.d("Activity赋值了mProgress: "+mProgress,"123asd");
+
+                }
+
+                @Override
+                public void onMusicStart(Song song) {
+                    LogUtil.d("Activity开始赋值mSong","123asd");
+
+            //        Log.wtf("asd", "asd", new Exception());
+
+                    mSong = song;
+                    LogUtil.d("Activity赋值了mSong:"+mSong.getSongName(),"123asd");
+                    Message msg=Message.obtain(mHandler,WHAT_START_SERVICE);
+                    msg.obj=song;
+                    msg.sendToTarget();
+
+                    LogUtil.d("Activity初始化UI","123asd");
+                }
+            });
+
+            LogUtil.d("Activity调用获取接口数据方法","123asd");
+            mMusicBinder.getMusicService().getMusicInfo();
         }
         @Override
         public void onServiceDisconnected(ComponentName name) {
+
         }
     };
 
+    @SuppressLint("HandlerLeak")
     private Handler mHandler = new Handler() {
         @Override
         public void handleMessage(Message msg) {
             switch (msg.what) {
                 case WHAT_UPDATE_PROGRESS:
-                    if (mIsRunning) {
-                        //更新进度条
-                        int current = musicService.mediaPlayer.getCurrentPosition();
-                        int total = musicService.mediaPlayer.getDuration();
-                        seekBar.setMax(total);
-                        seekBar.setProgress(current);
-                    }
+                    mMusicProgressSeekBar.setMax(msg.arg2);
+                    mMusicProgressSeekBar.setProgress(msg.arg1);
+                    break;
+
+                case WHAT_START_SERVICE:
+                    mSong= (Song) msg.obj;
+                    initUI();
                     break;
                 default:
                     break;
@@ -75,31 +110,31 @@ public class MusicActivity extends AppCompatActivity implements View.OnClickList
         setContentView(R.layout.activity_music);
 
 
+        //    ((SongApplication)getApplication()).getSongsManager()
+
+
         //获取intent对象，并在此处再次实现对歌曲文件的查询
         Intent intent = getIntent();
-        mCurrent = intent.getIntExtra("position", 0);
-        mSongList = AudioUtil.getAllSongs(MusicActivity.this.getContentResolver());
+        int position = intent.getIntExtra("position", 0);
 
         //获取button对象，并添加点击事件
-        Button start = (Button) findViewById(R.id.start_button);
-        start.setOnClickListener(this);
+        Button start_btn = (Button) findViewById(R.id.start_button);
+        start_btn.setOnClickListener(this);
 
-        Button stop = (Button) findViewById(R.id.stop_button);
-        stop.setOnClickListener(this);
+        Button preview_btn = (Button) findViewById(R.id.preview_button);
+        preview_btn.setOnClickListener(this);
 
-        Button preview = (Button) findViewById(R.id.preview_button);
-        preview.setOnClickListener(this);
+        Button next_btn = (Button) findViewById(R.id.next_button);
+        next_btn.setOnClickListener(this);
 
-        Button next = (Button) findViewById(R.id.next_button);
-        next.setOnClickListener(this);
-
-        seekBar = (SeekBar) findViewById(R.id.mySeekBar1);
-        seekBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
-            private int currentProgress; //记录进度的变量
+        mMusicProgressSeekBar = (SeekBar) findViewById(R.id.mySeekBar1);
+        mMusicProgressSeekBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+            private int currentProgress = 0; //记录进度的变量
 
             @Override
             public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
-                if (fromUser == true) {
+                if (fromUser) {
+
                     currentProgress = progress;//设置变量记录进度，在完成的方法里实现音乐拖动，无卡顿
                 }
             }
@@ -111,30 +146,34 @@ public class MusicActivity extends AppCompatActivity implements View.OnClickList
 
             @Override
             public void onStopTrackingTouch(SeekBar seekBar) {
-                musicService.mediaPlayer.seekTo(currentProgress);
+                mMusicBinder.seekTo(currentProgress);
             }
         });
 
-        if (ContextCompat.checkSelfPermission(MusicActivity.this, android.Manifest.permission.WRITE_EXTERNAL_STORAGE) !=
-                PackageManager.PERMISSION_GRANTED) {
+        if (ContextCompat.checkSelfPermission(MusicActivity.this, android.Manifest.permission
+                .WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
             ActivityCompat.requestPermissions(MusicActivity.this, new String[]{
                     android.Manifest.permission.WRITE_EXTERNAL_STORAGE}, 1);
         } else {
-            initUI();
-            Intent start0 = new Intent(this, MusicService.class);
-            start0.putExtra("position", mCurrent);
-            startService(start0);
-            bindService(start0, connection, BIND_AUTO_CREATE);
 
+            //发送当前歌曲在列表中的位置，让服务启动去播放
+            Intent start = new Intent(MusicActivity.this, MusicService.class);
+            start.putExtra("currentPosition", position);
 
+            startService(start);
+            LogUtil.d("Activity开始服务", "123asd");
+
+            bindService(start, connection, BIND_AUTO_CREATE);
+            LogUtil.d("Activity绑定服务", "123asd");
         }
-
     }
 
-    //完成音乐初始化，并显示歌曲时长等静态信息
+
+    //完成音乐界面初始化，显示歌曲时长等静态信息
     private void initUI() {
 
-        Song currentSong = mSongList.get(mCurrent);
+        Song currentSong = mSong;
+        LogUtil.d("Activity初始化界面",mSong.getSongName());
 
         //在TextView中显示歌曲时长
         TextView size = (TextView) findViewById(R.id.size);
@@ -163,29 +202,18 @@ public class MusicActivity extends AppCompatActivity implements View.OnClickList
     public void onClick(View v) {
         switch (v.getId()) {
             case R.id.start_button:
-                if (!musicService.mediaPlayer.isPlaying()) {
-                    musicService.mediaPlayer.start();
-                    mIsRunning = true;
+                mMusicBinder.start();
 
-                } else {
-                    musicService.mediaPlayer.pause();
-                }
-                break;
-
-            case R.id.stop_button:
-                if (musicService.mediaPlayer.isPlaying()) {
-                    musicService.mediaPlayer.pause();
-                }
                 break;
 
             case R.id.next_button:
-              //  musicBinder.nextMusic();
-                musicService.next();
+                mMusicBinder.nextMusic();
+
                 break;
 
             case R.id.preview_button:
-              //  musicBinder.previewMusic();
-                musicService.preview();
+                mMusicBinder.previewMusic();
+
                 break;
             default:
                 break;
@@ -209,10 +237,10 @@ public class MusicActivity extends AppCompatActivity implements View.OnClickList
 
 
     protected void onDestroy() {
-        super.onDestroy();
         unbindService(connection);
-
         mIsRunning = false;
+
+        super.onDestroy();
     }
 
     private class ProgressThread extends Thread {

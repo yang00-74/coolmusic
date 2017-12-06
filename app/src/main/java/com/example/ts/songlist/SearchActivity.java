@@ -52,10 +52,8 @@ public class SearchActivity extends AppCompatActivity {
         mListView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
-
-                Intent intent=new Intent(SearchActivity.this,MusicActivity.class);
-
-                intent.putExtra("position",position);
+                Intent intent = new Intent(SearchActivity.this, MusicActivity.class);
+                intent.putExtra("position", position);
                 startActivity(intent);
             }
         });
