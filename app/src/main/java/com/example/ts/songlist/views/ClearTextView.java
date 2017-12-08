@@ -67,6 +67,10 @@ public class ClearTextView extends LinearLayout implements View.OnClickListener 
         }
     }
 
+    public interface AfterTextChangeListener {
+        void afterTextChanged(Editable s);
+    }
+
     public void setAfterTextChangeListener(AfterTextChangeListener l) {
         mListener = l;
     }
@@ -83,9 +87,5 @@ public class ClearTextView extends LinearLayout implements View.OnClickListener 
         @Override
         public void afterTextChanged(Editable s) {
         }
-    }
-
-    public interface AfterTextChangeListener {
-        void afterTextChanged(Editable s);
     }
 }

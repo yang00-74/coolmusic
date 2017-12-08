@@ -1,4 +1,4 @@
-package com.example.ts.songlist;
+package com.example.ts.songlist.utils;
 
 import android.content.Context;
 import android.view.LayoutInflater;
@@ -7,6 +7,7 @@ import android.view.ViewGroup;
 import android.widget.ArrayAdapter;
 import android.widget.TextView;
 
+import com.example.ts.songlist.R;
 import com.example.ts.songlist.bean.Song;
 
 import java.util.List;
@@ -15,7 +16,7 @@ import java.util.List;
  * Created by ts on 17-11-22.
  */
 
-class SongAdapter extends ArrayAdapter<Song> {
+public class SongAdapter extends ArrayAdapter<Song> {
     private int resourceId;
 
     public SongAdapter(Context context, int textViewResourceId, List<Song> obj) {

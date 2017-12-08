@@ -42,9 +42,9 @@ public class AudioUtil {
 
         songs = new ArrayList<>();
 
-        if (cursor.moveToFirst()) {
+        if (cursor != null && cursor.moveToFirst()) {
 
-            Song song ;
+            Song song;
 
             do {
                 song = new Song();
@@ -54,7 +54,7 @@ public class AudioUtil {
                 //歌手名
                 String artist = cursor.getString(4);
                 //专辑名
-                int size=cursor.getInt(3);
+                int size = cursor.getInt(3);
 
                 String desc = cursor.getString(5);
 
@@ -101,7 +101,7 @@ public class AudioUtil {
         return songs;
     }
 
-    public static ArrayList<Song> getAllSongs(ContentResolver contentResolver, String pattener) {
+    public static ArrayList<Song> getAllSongs(ContentResolver contentResolver, String partner) {
 
         ArrayList<Song> songs;
         Uri uri = MediaStore.Audio.Media.EXTERNAL_CONTENT_URI;
@@ -118,16 +118,16 @@ public class AudioUtil {
                 MediaStore.Audio.Media.DATA};
 //mime_type title artist
         String sql = "(mime_type=? or mime_type=? ) and (title like ? or artist like ?)";
-        String[] args = {"audio/mpeg", "audio/x-ms-wma","%" + pattener + "%","%" + pattener + "%"};
+        String[] args = {"audio/mpeg", "audio/x-ms-wma", "%" + partner + "%", "%" + partner + "%"};
 
 
         Cursor cursor = contentResolver.query(uri, columns, sql, args, null);
 
         songs = new ArrayList<>();
 
-        if (cursor.moveToFirst()) {
+        if (cursor != null && cursor.moveToFirst()) {
 
-            Song song ;
+            Song song;
 
             do {
                 song = new Song();
@@ -139,7 +139,7 @@ public class AudioUtil {
                 //专辑名
                 String desc = cursor.getString(5);
                 //时长
-                int size=cursor.getInt(3);
+                int size = cursor.getInt(3);
 
                 song.setSongName(songName);
                 // 歌手名

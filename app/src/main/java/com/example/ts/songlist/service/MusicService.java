@@ -19,14 +19,14 @@ import com.example.ts.songlist.R;
 import com.example.ts.songlist.bean.Song;
 import com.example.ts.songlist.utils.AudioUtil;
 import com.example.ts.songlist.utils.LogUtil;
+import com.example.ts.songlist.utils.MediaPlayerProxy;
 
-import java.io.IOException;
 import java.io.Serializable;
 import java.util.ArrayList;
 
 public class MusicService extends Service implements Serializable {
 
-    public MediaPlayer mMediaPlayer = new MediaPlayer();
+    public MediaPlayerProxy mMediaPlayerProxy = new MediaPlayerProxy();
 
     private int mCurrentPosition;
     private ArrayList<Song> mSongList;
@@ -78,16 +78,16 @@ public class MusicService extends Service implements Serializable {
         }
 
         public void start() {
-            if (mMediaPlayer.isPlaying()) {
-                mMediaPlayer.pause();
+            if (mMediaPlayerProxy.getStatus() == MediaPlayerProxy.MediaPlayerStatus.STARTED) {
+                mMediaPlayerProxy.pause();
             } else {
-                mMediaPlayer.start();
+                mMediaPlayerProxy.start();
             }
         }
 
         public void seekTo(int progress) {
-            if (mMediaPlayer.isPlaying()) {
-                mMediaPlayer.seekTo(progress);
+            if (mMediaPlayerProxy.getStatus() == MediaPlayerProxy.MediaPlayerStatus.STARTED) {
+                mMediaPlayerProxy.seekTo(progress);
             }
         }
 
@@ -120,27 +120,86 @@ public class MusicService extends Service implements Serializable {
     @Override
     public int onStartCommand(@Nullable Intent intent, int flags, int startId) {
 
-        LogUtil.d("Service服务开始", "123asd");
+        LogUtil.d("Service服务开始", "1230asd");
 
         int position = 0;
         if (intent != null && intent.hasExtra("currentPosition")) {
             position = intent.getIntExtra("currentPosition", 0);
         }
 
-        LogUtil.d("Service准备播放了", "123asd");
+        LogUtil.d("Service准备播放了", "1230asd");
 
         if (mCurrentPosition == position) {
-            if (!mMediaPlayer.isPlaying()) {
-                mMediaPlayer.start();
+            if (mMediaPlayerProxy.getStatus() == MediaPlayerProxy.MediaPlayerStatus.PAUSED) {
+                mMediaPlayerProxy.start();
+            } else if (mMediaPlayerProxy.getStatus() == MediaPlayerProxy.MediaPlayerStatus.IDLE) {
+                play();
             } else {
                 return super.onStartCommand(intent, flags, startId);
             }
         } else {
             mCurrentPosition = position;
-            mMediaPlayer.reset();
+            mMediaPlayerProxy.stop();
+            mMediaPlayerProxy.reset();
             play();
         }
         return super.onStartCommand(intent, flags, startId);
+    }
+
+
+    public void play() {
+
+        LogUtil.d("Service开始播放", "1230asd");
+
+        Song song = mSongList.get(mCurrentPosition);
+        //设置url音乐文件源
+        String url = song.getFileUrl();
+
+        //广播发送歌曲信息
+        Intent intent = new Intent("Music_information");
+        intent.putExtra("music", song);
+        mLocalBroadcastManager.sendBroadcast(intent);
+
+        mMediaPlayerProxy.setDataSource(url);
+        mMediaPlayerProxy.prepare();
+
+        mMediaPlayerProxy.start();
+
+        //实现自动下一首逻辑
+        mMediaPlayerProxy.getMediaPlayer().setOnCompletionListener(
+                new MediaPlayer.OnCompletionListener() {
+                    @Override
+                    public void onCompletion(MediaPlayer mp) {
+
+                        LogUtil.d("Service自动播放", "1230asd");
+                        next();
+                    }
+                });
+    }
+
+    public void next() {
+        if (mCurrentPosition < mSongList.size() - 1) {
+            mCurrentPosition += 1;
+
+        } else {
+            mCurrentPosition = 0;
+        }
+        mMediaPlayerProxy.stop();
+        mMediaPlayerProxy.reset();
+        play();
+    }
+
+    public void preview() {
+        if (mCurrentPosition > 0) {
+            mCurrentPosition -= 1;
+
+        } else {
+            mCurrentPosition = mSongList.size() - 1;
+        }
+        mMediaPlayerProxy.stop();
+        mMediaPlayerProxy.reset();
+        play();
+
     }
 
     public void getMusicInfo() {
@@ -154,16 +213,16 @@ public class MusicService extends Service implements Serializable {
                     if (mMusicListener != null) {
 
                         LogUtil.d("Service接口不空", "123asd开始设置数据");
-                        if (mMediaPlayer.isPlaying()) {
-                            mMusicListener.onProgressChange(mMediaPlayer.getCurrentPosition(), mMediaPlayer.getDuration());
+                        if (mMediaPlayerProxy.getStatus() == MediaPlayerProxy.MediaPlayerStatus.STARTED) {
+                            mMusicListener.onProgressChange(mMediaPlayerProxy.getCurrentPosition(), mMediaPlayerProxy.getDuration());
                             mMusicListener.onMusicStart(mSongList.get(mCurrentPosition));
                         }
                     } else {
+
                         LogUtil.d("Service接口为空", "123asd");
                     }
-
                     try {
-                        Thread.sleep(100);
+                        Thread.sleep(50);
                     } catch (Exception e) {
                         e.printStackTrace();
                     }
@@ -174,59 +233,6 @@ public class MusicService extends Service implements Serializable {
 
     }
 
-    public void play() {
-
-        LogUtil.d("Service开始播放", "123asd");
-
-        Song song = mSongList.get(mCurrentPosition);
-        //设置url音乐文件源
-        String url = song.getFileUrl();
-
-        //广播发送歌曲信息
-        Intent intent = new Intent("Music_information");
-        intent.putExtra("music", song);
-        mLocalBroadcastManager.sendBroadcast(intent);
-
-        try {
-            mMediaPlayer.setDataSource(url);
-            mMediaPlayer.prepare();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-        mMediaPlayer.start();
-
-        //实现自动下一首逻辑
-        mMediaPlayer.setOnCompletionListener(new MediaPlayer.OnCompletionListener() {
-            @Override
-            public void onCompletion(MediaPlayer mp) {
-                next();
-            }
-        });
-    }
-
-    public void next() {
-        if (mCurrentPosition < mSongList.size() - 1) {
-            mCurrentPosition += 1;
-            mMediaPlayer.reset();
-            play();
-        } else {
-            mCurrentPosition = 0;
-            mMediaPlayer.reset();
-            play();
-        }
-    }
-
-    public void preview() {
-        if (mCurrentPosition > 0) {
-            mCurrentPosition -= 1;
-            mMediaPlayer.reset();
-            play();
-        } else {
-            mCurrentPosition = mSongList.size() - 1;
-            mMediaPlayer.reset();
-            play();
-        }
-    }
 
     public void setCurrentMusicListener(CurrentMusicListener currentMusicListener) {
 
@@ -243,7 +249,7 @@ public class MusicService extends Service implements Serializable {
     @Override
     public void onDestroy() {
 
-        mMediaPlayer.release();
+        mMediaPlayerProxy.release();
         mIsServiceRunning = false;
         stopSelf();
         mLocalBroadcastManager.unregisterReceiver(mLocalReceiver);

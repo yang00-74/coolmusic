@@ -12,8 +12,7 @@ import android.os.Message;
 import android.support.annotation.NonNull;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
-import android.support.v7.app.AppCompatActivity;
-import android.util.Log;
+import android.support.v4.widget.DrawerLayout;
 import android.view.View;
 import android.widget.Button;
 import android.widget.SeekBar;
@@ -26,14 +25,13 @@ import com.example.ts.songlist.utils.LogUtil;
 
 import java.io.Serializable;
 
-public class MusicActivity extends AppCompatActivity implements View.OnClickListener, Serializable {
+public class MusicActivity extends BasicActivity implements View.OnClickListener, Serializable {
     private final int WHAT_UPDATE_PROGRESS = 0;
     private final int WHAT_START_SERVICE = 1;
 
     private MusicService.MusicBinder mMusicBinder;
     private SeekBar mMusicProgressSeekBar;
-    private boolean mIsRunning = true;
-    private int mProgress;
+    public DrawerLayout mDrawerLayout;
     private Song mSong;
 
     private ServiceConnection connection = new ServiceConnection() {
@@ -41,43 +39,45 @@ public class MusicActivity extends AppCompatActivity implements View.OnClickList
         public void onServiceConnected(ComponentName name, IBinder service) {
             mMusicBinder = (MusicService.MusicBinder) service;
 
-            LogUtil.d("Activity绑定上了","123asd");
+            LogUtil.d("Activity绑定上了", "123asd");
 
             mMusicBinder.getMusicService().setCurrentMusicListener(new MusicService.CurrentMusicListener() {
-
                 @Override
-                public void onProgressChange(int progress, int max) {
-                    LogUtil.d("Activity开始赋值mProgress","123asd");
-                    mProgress = progress;
+                public void onProgressChange(final int progress, final int max) {
+                    LogUtil.d("Activity开始赋值mProgress", "123asd");
 
+//                    runOnUiThread(new Runnable() {
+//                        @Override
+//                        public void run() {
+//                            mMusicProgressSeekBar.setMax(max);
+//                            mMusicProgressSeekBar.setProgress(progress);
+//
+//                        }
+//                    });
+
+                    //异步消息机制实现更新UI
                     Message msg = Message.obtain(mHandler, WHAT_UPDATE_PROGRESS);
                     msg.arg1 = progress;
                     msg.arg2 = max;
                     msg.sendToTarget();
-
-                   LogUtil.d("Activity赋值了mProgress: "+mProgress,"123asd");
-
                 }
 
                 @Override
                 public void onMusicStart(Song song) {
-                    LogUtil.d("Activity开始赋值mSong","123asd");
+                    LogUtil.d("Activity开始赋值mSong", "123asd");
 
-            //        Log.wtf("asd", "asd", new Exception());
-
-                    mSong = song;
-                    LogUtil.d("Activity赋值了mSong:"+mSong.getSongName(),"123asd");
-                    Message msg=Message.obtain(mHandler,WHAT_START_SERVICE);
-                    msg.obj=song;
+                    Message msg = Message.obtain(mHandler, WHAT_START_SERVICE);
+                    msg.obj = song;
                     msg.sendToTarget();
 
-                    LogUtil.d("Activity初始化UI","123asd");
+                    LogUtil.d("Activity初始化UI", "123asd");
                 }
             });
 
-            LogUtil.d("Activity调用获取接口数据方法","123asd");
+            LogUtil.d("Activity调用获取接口数据方法", "123asd");
             mMusicBinder.getMusicService().getMusicInfo();
         }
+
         @Override
         public void onServiceDisconnected(ComponentName name) {
 
@@ -95,7 +95,7 @@ public class MusicActivity extends AppCompatActivity implements View.OnClickList
                     break;
 
                 case WHAT_START_SERVICE:
-                    mSong= (Song) msg.obj;
+                    mSong = (Song) msg.obj;
                     initUI();
                     break;
                 default:
@@ -112,22 +112,24 @@ public class MusicActivity extends AppCompatActivity implements View.OnClickList
 
         //    ((SongApplication)getApplication()).getSongsManager()
 
-
         //获取intent对象，并在此处再次实现对歌曲文件的查询
         Intent intent = getIntent();
         int position = intent.getIntExtra("position", 0);
 
         //获取button对象，并添加点击事件
-        Button start_btn = (Button) findViewById(R.id.start_button);
+        Button start_btn = findViewById(R.id.start_button);
         start_btn.setOnClickListener(this);
 
-        Button preview_btn = (Button) findViewById(R.id.preview_button);
+        Button preview_btn = findViewById(R.id.preview_button);
         preview_btn.setOnClickListener(this);
 
-        Button next_btn = (Button) findViewById(R.id.next_button);
+        Button next_btn = findViewById(R.id.next_button);
         next_btn.setOnClickListener(this);
 
-        mMusicProgressSeekBar = (SeekBar) findViewById(R.id.mySeekBar1);
+        //滑动菜单
+        mDrawerLayout = findViewById(R.id.drawer_layout);
+
+        mMusicProgressSeekBar = findViewById(R.id.mySeekBar1);
         mMusicProgressSeekBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
             private int currentProgress = 0; //记录进度的变量
 
@@ -156,27 +158,32 @@ public class MusicActivity extends AppCompatActivity implements View.OnClickList
                     android.Manifest.permission.WRITE_EXTERNAL_STORAGE}, 1);
         } else {
 
-            //发送当前歌曲在列表中的位置，让服务启动去播放
-            Intent start = new Intent(MusicActivity.this, MusicService.class);
-            start.putExtra("currentPosition", position);
-
-            startService(start);
-            LogUtil.d("Activity开始服务", "123asd");
-
-            bindService(start, connection, BIND_AUTO_CREATE);
-            LogUtil.d("Activity绑定服务", "123asd");
+            toStartService(position);
         }
     }
 
+
+    public void toStartService(int position) {
+
+        //发送当前歌曲在列表中的位置，让服务启动去播放
+        Intent start = new Intent(MusicActivity.this, MusicService.class);
+        start.putExtra("currentPosition", position);
+
+        startService(start);
+        LogUtil.d("Activity开始服务", "123asd");
+
+        bindService(start, connection, BIND_AUTO_CREATE);
+        LogUtil.d("Activity绑定服务", "123asd");
+    }
 
     //完成音乐界面初始化，显示歌曲时长等静态信息
     private void initUI() {
 
         Song currentSong = mSong;
-        LogUtil.d("Activity初始化界面",mSong.getSongName());
+        LogUtil.d("Activity初始化界面", mSong.getSongName());
 
         //在TextView中显示歌曲时长
-        TextView size = (TextView) findViewById(R.id.size);
+        TextView size = findViewById(R.id.size);
 
         Integer time = currentSong.getSize();
         Integer minute = time / 60000;
@@ -189,10 +196,13 @@ public class MusicActivity extends AppCompatActivity implements View.OnClickList
         } else {
             sec = seconds.toString();
         }
-        size.setText(min + ":" + sec);
+
+        String musicLength = min + ":" + sec;
+
+        size.setText(musicLength);
 
         //显示歌名
-        TextView songTitle = (TextView) findViewById(R.id.song_title);
+        TextView songTitle = findViewById(R.id.song_title);
         songTitle.setText(currentSong.getSongName());
 
     }
@@ -238,23 +248,6 @@ public class MusicActivity extends AppCompatActivity implements View.OnClickList
 
     protected void onDestroy() {
         unbindService(connection);
-        mIsRunning = false;
-
         super.onDestroy();
-    }
-
-    private class ProgressThread extends Thread {
-        @Override
-        public void run() {
-            while (mIsRunning) {
-                mHandler.sendEmptyMessage(WHAT_UPDATE_PROGRESS);
-
-                try {
-                    Thread.sleep(100);
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
-            }
-        }
     }
 }

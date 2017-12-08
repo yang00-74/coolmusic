@@ -17,7 +17,7 @@
         android:ellipsize="none"
         android:gravity="center_vertical"
         android:hint="搜索"
-        android:maxLines="1" />
+        android:singleLine="true" />
 
     <ImageButton
         android:id="@+id/bt_clear"
