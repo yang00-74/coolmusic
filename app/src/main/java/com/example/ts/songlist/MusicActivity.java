@@ -1,5 +1,6 @@
 package com.example.ts.songlist;
 
+import android.Manifest;
 import android.annotation.SuppressLint;
 import android.content.ComponentName;
 import android.content.Intent;
@@ -114,7 +115,7 @@ public class MusicActivity extends BasicActivity implements View.OnClickListener
 
         //获取intent对象，并在此处再次实现对歌曲文件的查询
         Intent intent = getIntent();
-        int position = intent.getIntExtra("position", 0);
+        int musicId = intent.getIntExtra("MusicId", 1);
 
         //获取button对象，并添加点击事件
         Button start_btn = findViewById(R.id.start_button);
@@ -152,22 +153,22 @@ public class MusicActivity extends BasicActivity implements View.OnClickListener
             }
         });
 
-        if (ContextCompat.checkSelfPermission(MusicActivity.this, android.Manifest.permission
+        if (ContextCompat.checkSelfPermission(MusicActivity.this, Manifest.permission
                 .WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
             ActivityCompat.requestPermissions(MusicActivity.this, new String[]{
-                    android.Manifest.permission.WRITE_EXTERNAL_STORAGE}, 1);
+                    Manifest.permission.WRITE_EXTERNAL_STORAGE}, 1);
         } else {
 
-            toStartService(position);
+            toStartService(musicId);
         }
     }
 
 
-    public void toStartService(int position) {
+    public void toStartService(int musicId) {
 
         //发送当前歌曲在列表中的位置，让服务启动去播放
         Intent start = new Intent(MusicActivity.this, MusicService.class);
-        start.putExtra("currentPosition", position);
+        start.putExtra("musicId", musicId);
 
         startService(start);
         LogUtil.d("Activity开始服务", "123asd");
@@ -180,12 +181,12 @@ public class MusicActivity extends BasicActivity implements View.OnClickListener
     private void initUI() {
 
         Song currentSong = mSong;
-        LogUtil.d("Activity初始化界面", mSong.getSongName());
+        LogUtil.d("Activity初始化界面", mSong.getmSongName());
 
         //在TextView中显示歌曲时长
         TextView size = findViewById(R.id.size);
 
-        Integer time = currentSong.getSize();
+        Integer time = currentSong.getmSize();
         Integer minute = time / 60000;
         String min = "0" + minute;
 
@@ -203,7 +204,7 @@ public class MusicActivity extends BasicActivity implements View.OnClickListener
 
         //显示歌名
         TextView songTitle = findViewById(R.id.song_title);
-        songTitle.setText(currentSong.getSongName());
+        songTitle.setText(currentSong.getmSongName());
 
     }
 

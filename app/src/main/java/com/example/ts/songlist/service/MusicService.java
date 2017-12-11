@@ -17,19 +17,19 @@ import android.support.v4.content.LocalBroadcastManager;
 import com.example.ts.songlist.MusicActivity;
 import com.example.ts.songlist.R;
 import com.example.ts.songlist.bean.Song;
-import com.example.ts.songlist.utils.AudioUtil;
 import com.example.ts.songlist.utils.LogUtil;
 import com.example.ts.songlist.utils.MediaPlayerProxy;
 
+import org.litepal.crud.DataSupport;
+
 import java.io.Serializable;
-import java.util.ArrayList;
 
 public class MusicService extends Service implements Serializable {
 
     public MediaPlayerProxy mMediaPlayerProxy = new MediaPlayerProxy();
 
-    private int mCurrentPosition;
-    private ArrayList<Song> mSongList;
+    private int mCurrentPosition = 1;
+    private Song mSong ;
     private MusicBinder mBinder = new MusicBinder();
 
     private CurrentMusicListener mMusicListener;
@@ -51,8 +51,8 @@ public class MusicService extends Service implements Serializable {
                 PendingIntent pi = PendingIntent.getActivity(MusicService.this, 0, intent2, 0);
 
                 Notification notification = new NotificationCompat.Builder(MusicService.this)
-                        .setContentTitle(song.getSongName())
-                        .setContentText(song.getArtist())
+                        .setContentTitle(song.getmSongName())
+                        .setContentText(song.getmArtist())
                         .setWhen(System.currentTimeMillis())
                         .setSmallIcon(R.mipmap.ic_launcher)
                         .setContentIntent(pi)//设置延迟意图
@@ -108,7 +108,6 @@ public class MusicService extends Service implements Serializable {
 
         mLocalBroadcastManager = LocalBroadcastManager.getInstance(this);
 
-        mSongList = AudioUtil.getAllSongs(this.getContentResolver());
         //注册接收歌曲信息广播,显示在通知中
         IntentFilter intentFilter = new IntentFilter();
         intentFilter.addAction("Music_information");
@@ -122,14 +121,14 @@ public class MusicService extends Service implements Serializable {
 
         LogUtil.d("Service服务开始", "1230asd");
 
-        int position = 0;
-        if (intent != null && intent.hasExtra("currentPosition")) {
-            position = intent.getIntExtra("currentPosition", 0);
+        int musicId = 1;
+        if (intent != null && intent.hasExtra("musicId")) {
+            musicId = intent.getIntExtra("musicId", 1);
         }
 
-        LogUtil.d("Service准备播放了", "1230asd");
+        LogUtil.d("Service准备播放了", "1230asd musicid:" + musicId);
 
-        if (mCurrentPosition == position) {
+        if (mCurrentPosition == musicId) {
             if (mMediaPlayerProxy.getStatus() == MediaPlayerProxy.MediaPlayerStatus.PAUSED) {
                 mMediaPlayerProxy.start();
             } else if (mMediaPlayerProxy.getStatus() == MediaPlayerProxy.MediaPlayerStatus.IDLE) {
@@ -138,7 +137,7 @@ public class MusicService extends Service implements Serializable {
                 return super.onStartCommand(intent, flags, startId);
             }
         } else {
-            mCurrentPosition = position;
+            mCurrentPosition = musicId;
             mMediaPlayerProxy.stop();
             mMediaPlayerProxy.reset();
             play();
@@ -149,15 +148,18 @@ public class MusicService extends Service implements Serializable {
 
     public void play() {
 
-        LogUtil.d("Service开始播放", "1230asd");
+        LogUtil.d("Service开始播放", "1230asd 当前位置" + mCurrentPosition);
 
-        Song song = mSongList.get(mCurrentPosition);
+     //   mSongList = DataSupport.where(" id =? ","2").find(Song.class);
+
+
+         mSong = DataSupport.find(Song.class,mCurrentPosition);
         //设置url音乐文件源
-        String url = song.getFileUrl();
+        String url = mSong.getmFileUrl();
 
         //广播发送歌曲信息
         Intent intent = new Intent("Music_information");
-        intent.putExtra("music", song);
+        intent.putExtra("music", mSong);
         mLocalBroadcastManager.sendBroadcast(intent);
 
         mMediaPlayerProxy.setDataSource(url);
@@ -178,11 +180,11 @@ public class MusicService extends Service implements Serializable {
     }
 
     public void next() {
-        if (mCurrentPosition < mSongList.size() - 1) {
+        if (mCurrentPosition < DataSupport.count(Song.class)) {
             mCurrentPosition += 1;
 
         } else {
-            mCurrentPosition = 0;
+            mCurrentPosition = 1;
         }
         mMediaPlayerProxy.stop();
         mMediaPlayerProxy.reset();
@@ -190,11 +192,11 @@ public class MusicService extends Service implements Serializable {
     }
 
     public void preview() {
-        if (mCurrentPosition > 0) {
+        if (mCurrentPosition > 1) {
             mCurrentPosition -= 1;
 
         } else {
-            mCurrentPosition = mSongList.size() - 1;
+            mCurrentPosition = DataSupport.count(Song.class);
         }
         mMediaPlayerProxy.stop();
         mMediaPlayerProxy.reset();
@@ -215,7 +217,7 @@ public class MusicService extends Service implements Serializable {
                         LogUtil.d("Service接口不空", "123asd开始设置数据");
                         if (mMediaPlayerProxy.getStatus() == MediaPlayerProxy.MediaPlayerStatus.STARTED) {
                             mMusicListener.onProgressChange(mMediaPlayerProxy.getCurrentPosition(), mMediaPlayerProxy.getDuration());
-                            mMusicListener.onMusicStart(mSongList.get(mCurrentPosition));
+                            mMusicListener.onMusicStart(mSong);
                         }
                     } else {
 
@@ -251,6 +253,7 @@ public class MusicService extends Service implements Serializable {
 
         mMediaPlayerProxy.release();
         mIsServiceRunning = false;
+
         stopSelf();
         mLocalBroadcastManager.unregisterReceiver(mLocalReceiver);
         super.onDestroy();

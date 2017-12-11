@@ -20,6 +20,8 @@ import com.example.ts.songlist.utils.AudioUtil;
 import com.example.ts.songlist.utils.LogUtil;
 import com.example.ts.songlist.utils.SongAdapter;
 
+import org.litepal.crud.DataSupport;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -40,7 +42,14 @@ public class MusicListFragment extends Fragment {
         View view = inflater.inflate(R.layout.fragment_music_list, container, false);
         mSearchText = view.findViewById(R.id.search);
         mListView = view.findViewById(R.id.list_view);
-        mSongList = AudioUtil.getAllSongs(getContext().getContentResolver());
+
+
+        AudioUtil.getAllSongs(getContext().getContentResolver());
+        mSongList = DataSupport.findAll(Song.class);
+
+        for (Song song : mSongList) {
+            LogUtil.d("search123", song.getId() + "");
+        }
         SongAdapter mAdapter = new SongAdapter(getContext(), R.layout.song_item, mSongList);
         mListView.setAdapter(mAdapter);
 
@@ -57,7 +66,8 @@ public class MusicListFragment extends Fragment {
             public void afterTextChanged(Editable s) {
 
                 String partner = s.toString();
-                mSongList = AudioUtil.getAllSongs(getContext().getContentResolver(), partner);
+                mSongList = DataSupport.where("mSongName like ? or mArtist like ?"
+                        , "%" + partner + "%", "%" + partner + "%").find(Song.class);
 
                 SongAdapter adapter = new SongAdapter(getContext(), R.layout.song_item, mSongList);
                 mListView.setAdapter(adapter);
@@ -65,20 +75,24 @@ public class MusicListFragment extends Fragment {
         });
 
         mListView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+
+
             @Override
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+
+                Song song = mSongList.get(position);
+
                 if (getActivity() instanceof SearchActivity) {
-                    LogUtil.d("Fragment123", "这是从SearcheActivity到musicActivity");
 
                     Intent intent = new Intent(getContext(), MusicActivity.class);
-                    intent.putExtra("position", position);
+                    intent.putExtra("MusicId", song.getId());
                     startActivity(intent);
+
                 } else if (getActivity() instanceof MusicActivity) {
-                    LogUtil.d("Fragment123", "这是从musicActivity到musicService");
 
                     MusicActivity musicActivity = (MusicActivity) getActivity();
                     musicActivity.mDrawerLayout.closeDrawers();
-                    musicActivity.toStartService(position);
+                    musicActivity.toStartService(song.getId());
                 }
             }
         });

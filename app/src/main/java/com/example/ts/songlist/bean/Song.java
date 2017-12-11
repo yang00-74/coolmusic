@@ -1,57 +1,73 @@
 package com.example.ts.songlist.bean;
 
+import org.litepal.annotation.Column;
+import org.litepal.crud.DataSupport;
+
 import java.io.Serializable;
 
 /**
  * Created by ts on 17-11-22.
+ * 用于存储歌曲信息的bean
  */
 
-public class Song implements Serializable{
-    private String songName;
-    private String artist;
-    private String desc;
-    private String fileUrl;
-    private int  size;
+public class Song  extends DataSupport implements Serializable{
+    private int id;
 
-    public int getSize() {
-        return size;
+    @Column(unique = true)
+    private String mSongName;
+
+    private String mArtist;
+    private String mAlbum;
+    private String mFileUrl;
+    private int  mSize;
+
+    public int getId() {
+        return id;
     }
 
-    public void setSize(int size) {
-        this.size = size;
+    public void setId(int id) {
+        this.id = id;
     }
 
-    public String getFileUrl() {
-        return fileUrl;
+    public int getmSize() {
+        return mSize;
     }
 
-    public void setFileUrl(String fileUrl) {
-        this.fileUrl = fileUrl;
+    public void setmSize(int size) {
+        this.mSize = size;
+    }
+
+    public String getmFileUrl() {
+        return mFileUrl;
+    }
+
+    public void setmFileUrl(String mFileUrl) {
+        this.mFileUrl = mFileUrl;
     }
 
 
-    public String getSongName() {
-        return songName;
+    public String getmSongName() {
+        return mSongName;
     }
 
-    public void setSongName(String songName) {
-        this.songName = songName;
+    public void setmSongName(String mSongName) {
+        this.mSongName = mSongName;
     }
 
-    public String getArtist() {
-        return artist;
+    public String getmArtist() {
+        return mArtist;
     }
 
-    public void setArtist(String artist) {
-        this.artist = artist;
+    public void setmArtist(String mArtist) {
+        this.mArtist = mArtist;
     }
 
-    public String getDesc() {
-        return desc;
+    public String getmAlbum() {
+        return mAlbum;
     }
 
-    public void setDesc(String desc) {
-        this.desc = desc;
+    public void setmAlbum(String mAlbum) {
+        this.mAlbum = mAlbum;
     }
 
     @Override
