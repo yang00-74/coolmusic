@@ -7,10 +7,11 @@ import java.io.Serializable;
 
 /**
  * Created by ts on 17-11-22.
- * 用于存储歌曲信息的bean
+ * It is a bean use to store the information of song
  */
 
 public class Song  extends DataSupport implements Serializable{
+
     private int id;
 
     @Column(unique = true)

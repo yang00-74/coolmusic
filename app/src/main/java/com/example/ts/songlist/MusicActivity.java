@@ -1,46 +1,79 @@
 package com.example.ts.songlist;
 
-import android.Manifest;
 import android.annotation.SuppressLint;
 import android.content.ComponentName;
 import android.content.Intent;
 import android.content.ServiceConnection;
-import android.content.pm.PackageManager;
+import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.IBinder;
 import android.os.Message;
-import android.support.annotation.NonNull;
-import android.support.v4.app.ActivityCompat;
-import android.support.v4.content.ContextCompat;
+import android.preference.PreferenceManager;
 import android.support.v4.widget.DrawerLayout;
+import android.support.v4.widget.SwipeRefreshLayout;
 import android.view.View;
 import android.widget.Button;
+import android.widget.ImageView;
 import android.widget.SeekBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.bumptech.glide.Glide;
 import com.example.ts.songlist.bean.Song;
 import com.example.ts.songlist.service.MusicService;
+import com.example.ts.songlist.utils.HttpUtil;
 import com.example.ts.songlist.utils.LogUtil;
+import com.example.ts.songlist.utils.MediaPlayerProxy;
 
+import java.io.IOException;
 import java.io.Serializable;
 
+import okhttp3.Call;
+import okhttp3.Callback;
+import okhttp3.Response;
+
+
 public class MusicActivity extends BasicActivity implements View.OnClickListener, Serializable {
+
+    private static final String ZERO = "0";
+
+    private static final String COLON = ":";
+
+    private static final String MUSICID = "musicId";
+
+    private static final String STARTING = "播放中";
+
+    private static final String PAUSED = "已暂停";
+
     private final int WHAT_UPDATE_PROGRESS = 0;
+
     private final int WHAT_START_SERVICE = 1;
 
+    private final int WHAT_BUTTON_UPDATE = 2;
+
+    private int mSeekToProgress = 0;
+
+    private int mChangeProgress = 0;
+
     private MusicService.MusicBinder mMusicBinder;
+
+    private Button start_btn;
+
     private SeekBar mMusicProgressSeekBar;
+
     public DrawerLayout mDrawerLayout;
-    private Song mSong;
+
+    private TextView mSonProgress;
+
+    private ImageView bingPicImg;
+
+    public SwipeRefreshLayout swipeRefreshLayout;
 
     private ServiceConnection connection = new ServiceConnection() {
         @Override
         public void onServiceConnected(ComponentName name, IBinder service) {
             mMusicBinder = (MusicService.MusicBinder) service;
-
-            LogUtil.d("Activity绑定上了", "123asd");
 
             mMusicBinder.getMusicService().setCurrentMusicListener(new MusicService.CurrentMusicListener() {
                 @Override
@@ -56,7 +89,7 @@ public class MusicActivity extends BasicActivity implements View.OnClickListener
 //                        }
 //                    });
 
-                    //异步消息机制实现更新UI
+                    //use Async Message to update UI
                     Message msg = Message.obtain(mHandler, WHAT_UPDATE_PROGRESS);
                     msg.arg1 = progress;
                     msg.arg2 = max;
@@ -65,18 +98,23 @@ public class MusicActivity extends BasicActivity implements View.OnClickListener
 
                 @Override
                 public void onMusicStart(Song song) {
-                    LogUtil.d("Activity开始赋值mSong", "123asd");
 
                     Message msg = Message.obtain(mHandler, WHAT_START_SERVICE);
                     msg.obj = song;
                     msg.sendToTarget();
 
-                    LogUtil.d("Activity初始化UI", "123asd");
+                }
+
+                @Override
+                public void onMediaPlayStatus(MediaPlayerProxy.MediaPlayerStatus status) {
+                    Message message = Message.obtain(mHandler, WHAT_BUTTON_UPDATE);
+                    message.obj = status;
+                    message.sendToTarget();
                 }
             });
 
-            LogUtil.d("Activity调用获取接口数据方法", "123asd");
             mMusicBinder.getMusicService().getMusicInfo();
+
         }
 
         @Override
@@ -91,14 +129,22 @@ public class MusicActivity extends BasicActivity implements View.OnClickListener
         public void handleMessage(Message msg) {
             switch (msg.what) {
                 case WHAT_UPDATE_PROGRESS:
-                    mMusicProgressSeekBar.setMax(msg.arg2);
-                    mMusicProgressSeekBar.setProgress(msg.arg1);
+                    displayMusicProgress(msg.arg2, msg.arg1);
                     break;
 
                 case WHAT_START_SERVICE:
-                    mSong = (Song) msg.obj;
-                    initUI();
+                    Song song = (Song) msg.obj;
+                    initUI(song);
                     break;
+
+                case WHAT_BUTTON_UPDATE:
+                    if (msg.obj == MediaPlayerProxy.MediaPlayerStatus.STARTED) {
+                        start_btn.setText(STARTING);
+                    } else if (msg.obj == MediaPlayerProxy.MediaPlayerStatus.PAUSED) {
+                        start_btn.setText(PAUSED);
+                    }
+                    break;
+
                 default:
                     break;
             }
@@ -110,16 +156,36 @@ public class MusicActivity extends BasicActivity implements View.OnClickListener
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_music);
 
-
-        //    ((SongApplication)getApplication()).getSongsManager()
-
-        //获取intent对象，并在此处再次实现对歌曲文件的查询
-        Intent intent = getIntent();
-        int musicId = intent.getIntExtra("MusicId", 1);
-
-        //获取button对象，并添加点击事件
-        Button start_btn = findViewById(R.id.start_button);
+        start_btn = findViewById(R.id.start_button);
         start_btn.setOnClickListener(this);
+
+        bingPicImg = findViewById(R.id.bing_pic_img);
+        SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(this);
+        final String bingPic = preferences.getString("bing_pic", null);
+
+        if (bingPic != null) {
+            Glide.with(this).load(bingPic).into(bingPicImg);
+        } else {
+            loadBingPic();
+        }
+
+        //swipeRefreshLayout used to refresh the image
+        swipeRefreshLayout = findViewById(R.id.swipe_refresh);
+        swipeRefreshLayout.setColorSchemeResources(R.color.colorPrimary);
+        swipeRefreshLayout.setOnRefreshListener(new SwipeRefreshLayout.OnRefreshListener() {
+            @Override
+            public void onRefresh() {
+                if (bingPic != null) {
+                    Glide.with(MusicActivity.this).load(bingPic).into(bingPicImg);
+                    swipeRefreshLayout.setRefreshing(false);
+                } else {
+                    loadBingPic();
+                }
+
+            }
+        });
+
+        mSonProgress = findViewById(R.id.song_progress);
 
         Button preview_btn = findViewById(R.id.preview_button);
         preview_btn.setOnClickListener(this);
@@ -132,13 +198,11 @@ public class MusicActivity extends BasicActivity implements View.OnClickListener
 
         mMusicProgressSeekBar = findViewById(R.id.mySeekBar1);
         mMusicProgressSeekBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
-            private int currentProgress = 0; //记录进度的变量
-
             @Override
             public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
                 if (fromUser) {
 
-                    currentProgress = progress;//设置变量记录进度，在完成的方法里实现音乐拖动，无卡顿
+                    mSeekToProgress = progress;//设置变量记录进度，在完成的方法里实现音乐拖动，无卡顿
                 }
             }
 
@@ -149,66 +213,132 @@ public class MusicActivity extends BasicActivity implements View.OnClickListener
 
             @Override
             public void onStopTrackingTouch(SeekBar seekBar) {
-                mMusicBinder.seekTo(currentProgress);
+                mMusicBinder.seekTo(mSeekToProgress);
             }
         });
 
-        if (ContextCompat.checkSelfPermission(MusicActivity.this, Manifest.permission
-                .WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
-            ActivityCompat.requestPermissions(MusicActivity.this, new String[]{
-                    Manifest.permission.WRITE_EXTERNAL_STORAGE}, 1);
-        } else {
+        Intent intent = new Intent(this, MusicService.class);
+        try {
+            startService(intent);
+            bindService(intent, connection, BIND_AUTO_CREATE);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
 
-            toStartService(musicId);
+    }
+
+    @Override
+    protected void onStart() {
+        super.onStart();
+
+        Intent intent = getIntent();
+
+        if (intent != null && intent.hasExtra(MUSICID)) {
+            int musicId = intent.getIntExtra(MUSICID, 1);
+            try {
+                toStartService(musicId);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
         }
     }
 
-
     public void toStartService(int musicId) {
 
-        //发送当前歌曲在列表中的位置，让服务启动去播放
+        //send  song`s id to the service
         Intent start = new Intent(MusicActivity.this, MusicService.class);
-        start.putExtra("musicId", musicId);
-
+        start.putExtra(MUSICID, musicId);
         startService(start);
-        LogUtil.d("Activity开始服务", "123asd");
-
-        bindService(start, connection, BIND_AUTO_CREATE);
-        LogUtil.d("Activity绑定服务", "123asd");
     }
 
-    //完成音乐界面初始化，显示歌曲时长等静态信息
-    private void initUI() {
 
-        Song currentSong = mSong;
-        LogUtil.d("Activity初始化界面", mSong.getmSongName());
+    private void loadBingPic() {
+        String requestBingPic = "http://guolin.tech/api/bing_pic";
+        HttpUtil.sendOkHttpRequest(requestBingPic, new Callback() {
+            @Override
+            public void onFailure(Call call, IOException e) {
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        Toast.makeText(MusicActivity.this, "获取失败", Toast.LENGTH_SHORT).show();
+                        swipeRefreshLayout.setRefreshing(false);
+                    }
+                });
+            }
 
+            @Override
+            public void onResponse(Call call, Response response) throws IOException {
+
+                final String bingPic = response.body().string();
+                SharedPreferences.Editor editor = PreferenceManager.getDefaultSharedPreferences(MusicActivity.this).edit();
+                editor.putString("bing_pic", bingPic);
+                editor.apply();
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        swipeRefreshLayout.setRefreshing(false);
+                        Glide.with(MusicActivity.this).load(bingPic).into(bingPicImg);
+                    }
+                });
+            }
+        });
+    }
+
+    //display song`s name and total_time
+    private void initUI(Song song) {
+        if (null == song) {
+            return;
+        }
         //在TextView中显示歌曲时长
         TextView size = findViewById(R.id.size);
 
-        Integer time = currentSong.getmSize();
+        Integer time = song.getmSize();
         Integer minute = time / 60000;
-        String min = "0" + minute;
+        String min = ZERO + minute;
 
         Integer seconds = time % 60000 / 1000;
         String sec;
         if (seconds < 10) {
-            sec = "0" + seconds;
+            sec = ZERO + seconds;
         } else {
             sec = seconds.toString();
         }
 
-        String musicLength = min + ":" + sec;
+        String musicLength = min + COLON + sec;
 
         size.setText(musicLength);
 
-        //显示歌名
+        //display the song`s name
         TextView songTitle = findViewById(R.id.song_title);
-        songTitle.setText(currentSong.getmSongName());
+        songTitle.setText(song.getmSongName());
 
     }
 
-    //按钮事件处理
+    //display the music`s progress
+    private void displayMusicProgress(int max, int progress) {
+
+        mMusicProgressSeekBar.setMax(max);
+        if (mChangeProgress != mSeekToProgress) {
+            mChangeProgress = mSeekToProgress;
+            mMusicProgressSeekBar.setProgress(mChangeProgress);
+        } else {
+            mMusicProgressSeekBar.setProgress(progress);
+        }
+
+        Integer minute = progress / 60000;
+        String min = ZERO + minute;
+        Integer seconds = progress % 60000 / 1000;
+        String sec;
+        if (seconds < 10) {
+            sec = ZERO + seconds;
+        } else {
+            sec = seconds.toString();
+        }
+        String currentLength = min + COLON + sec;
+        mSonProgress.setText(currentLength);
+    }
+
+    //There is button clicked event
     @Override
     public void onClick(View v) {
         switch (v.getId()) {
@@ -231,24 +361,12 @@ public class MusicActivity extends BasicActivity implements View.OnClickListener
         }
     }
 
-    @Override
-    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
-        switch (requestCode) {
-            case 1:
-                if (grantResults.length > 0 && grantResults[0] == PackageManager.
-                        PERMISSION_GRANTED) {
-                    initUI();
-                } else {
-                    Toast.makeText(this, "拒绝权限无法使用", Toast.LENGTH_SHORT).show();
-                    finish();
-                }
-                break;
-        }
+    protected void onDestroy() {
+        onUnbindService();
+        super.onDestroy();
     }
 
-
-    protected void onDestroy() {
+    public void onUnbindService() {
         unbindService(connection);
-        super.onDestroy();
     }
 }

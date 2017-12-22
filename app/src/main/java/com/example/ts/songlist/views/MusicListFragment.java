@@ -1,41 +1,68 @@
 package com.example.ts.songlist.views;
 
+import android.Manifest;
 import android.annotation.SuppressLint;
-import android.support.v4.app.Fragment;
+import android.content.BroadcastReceiver;
+import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
+import android.content.pm.PackageManager;
 import android.os.Bundle;
+import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
+import android.support.v4.app.ActivityCompat;
+import android.support.v4.app.Fragment;
+import android.support.v4.content.ContextCompat;
 import android.text.Editable;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.AdapterView;
 import android.widget.ListView;
+import android.widget.Toast;
 
 import com.example.ts.songlist.MusicActivity;
 import com.example.ts.songlist.R;
 import com.example.ts.songlist.SearchActivity;
+import com.example.ts.songlist.adapter.SongAdapter;
+import com.example.ts.songlist.application.SongApplication;
 import com.example.ts.songlist.bean.Song;
-import com.example.ts.songlist.utils.AudioUtil;
 import com.example.ts.songlist.utils.LogUtil;
-import com.example.ts.songlist.utils.SongAdapter;
-
-import org.litepal.crud.DataSupport;
 
 import java.util.ArrayList;
 import java.util.List;
 
 /**
  * Created by ts on 17-12-7.
- * 用于显示音乐文件列表的碎片
+ * It is a fragment used to display the music list
  */
 
 @SuppressLint("NewApi")
 public class MusicListFragment extends Fragment {
 
     private ClearTextView mSearchText;
+
+    public SongAdapter mAdapter;
+
+    private static final String MUSICID = "musicId";
+
     private ListView mListView;
+
     private List<Song> mSongList = new ArrayList<>();
+
+    private BroadcastReceiver mReceiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            if (MUSICID.equals(intent.getAction())) {
+                int position = intent.getIntExtra(MUSICID, 0);
+                mAdapter.setSelectedPosition(position);
+                mAdapter.notifyDataSetInvalidated();
+            }
+        }
+    };
+
+    public MusicListFragment() {
+    }
 
     @Override
     public View onCreateView(LayoutInflater inflater, @Nullable ViewGroup container, Bundle savedInstanceState) {
@@ -43,17 +70,13 @@ public class MusicListFragment extends Fragment {
         mSearchText = view.findViewById(R.id.search);
         mListView = view.findViewById(R.id.list_view);
 
-
-        AudioUtil.getAllSongs(getContext().getContentResolver());
-        mSongList = DataSupport.findAll(Song.class);
-
-        for (Song song : mSongList) {
-            LogUtil.d("search123", song.getId() + "");
+        if (ContextCompat.checkSelfPermission(getContext(), Manifest.permission
+                .WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
+            ActivityCompat.requestPermissions(getActivity(), new String[]{
+                    Manifest.permission.WRITE_EXTERNAL_STORAGE}, 1);
+        } else {
+            showList();
         }
-        SongAdapter mAdapter = new SongAdapter(getContext(), R.layout.song_item, mSongList);
-        mListView.setAdapter(mAdapter);
-
-
         return view;
     }
 
@@ -63,19 +86,35 @@ public class MusicListFragment extends Fragment {
 
         mSearchText.setAfterTextChangeListener(new ClearTextView.AfterTextChangeListener() {
             @Override
-            public void afterTextChanged(Editable s) {
+            public void afterTextChanged(Editable editable) {
 
-                String partner = s.toString();
-                mSongList = DataSupport.where("mSongName like ? or mArtist like ?"
-                        , "%" + partner + "%", "%" + partner + "%").find(Song.class);
+                String partner = editable.toString();
+                mSongList = SongApplication.getSongsManager().searchSongs(partner);
+                mAdapter.clear();
+                mAdapter.addAll(mSongList);
+                mAdapter.notifyDataSetChanged();
+            }
+        });
 
-                SongAdapter adapter = new SongAdapter(getContext(), R.layout.song_item, mSongList);
-                mListView.setAdapter(adapter);
+        mListView.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+            @Override
+            public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
+            }
+
+            @Override
+            public void onNothingSelected(AdapterView<?> parent) {
+
+            }
+        });
+
+        mListView.setOnItemLongClickListener(new AdapterView.OnItemLongClickListener() {
+            @Override
+            public boolean onItemLongClick(AdapterView<?> parent, View view, int position, long id) {
+                return false;
             }
         });
 
         mListView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
-
 
             @Override
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
@@ -85,7 +124,7 @@ public class MusicListFragment extends Fragment {
                 if (getActivity() instanceof SearchActivity) {
 
                     Intent intent = new Intent(getContext(), MusicActivity.class);
-                    intent.putExtra("MusicId", song.getId());
+                    intent.putExtra(MUSICID, song.getId());
                     startActivity(intent);
 
                 } else if (getActivity() instanceof MusicActivity) {
@@ -96,5 +135,47 @@ public class MusicListFragment extends Fragment {
                 }
             }
         });
+    }
+
+    @Override
+    public void onStart() {
+        super.onStart();
+
+        IntentFilter intentFilter = new IntentFilter();
+        intentFilter.addAction(MUSICID);
+        getActivity().registerReceiver(mReceiver, intentFilter);
+    }
+
+
+    @Override
+    public void onDestroy() {
+        super.onDestroy();
+        getActivity().unregisterReceiver(mReceiver);
+    }
+
+    public void showList() {
+
+        mSongList = SongApplication.getSongsManager().findAllSong();
+
+        for (Song song : mSongList) {
+            LogUtil.d("search123", song.getId() + "");
+        }
+        mAdapter = new SongAdapter(getContext(), R.layout.song_item, mSongList);
+        mListView.setAdapter(mAdapter);
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+        switch (requestCode) {
+            case 1:
+                if (grantResults.length > 0 && grantResults[0] == PackageManager.
+                        PERMISSION_GRANTED) {
+                    showList();
+                } else {
+                    Toast.makeText(getContext(), "拒绝权限无法使用", Toast.LENGTH_SHORT).show();
+                    getActivity().finish();
+                }
+                break;
+        }
     }
 }

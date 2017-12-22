@@ -15,6 +15,7 @@ import com.example.ts.songlist.R;
 
 public class ClearTextView extends LinearLayout implements View.OnClickListener {
     private EditText mEditText;
+
     private ImageButton mClearButton;
 
     private AfterTextChangeListener mListener;

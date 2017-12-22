@@ -1,6 +1,6 @@
 <litepal>
     <dbname value="coolmusic"/>
-    <version value="5"/>
+    <version value="6"/>
     <list>
         <mapping class="com.example.ts.songlist.bean.Song"/>
     </list>

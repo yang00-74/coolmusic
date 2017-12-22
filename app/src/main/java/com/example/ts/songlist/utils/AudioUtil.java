@@ -9,19 +9,16 @@ import com.example.ts.songlist.bean.Song;
 
 import org.litepal.crud.DataSupport;
 
-import java.util.ArrayList;
-import java.util.List;
-
 /**
  * Created by ts on 17-11-23.
- * 用于获取手机中所有歌曲的信息
+ * It is used to search all local songs,
+ * then insert each of them into database if it is not repeat
  */
 
 public class AudioUtil {
 
-    public static ArrayList<Song> getAllSongs(ContentResolver contentResolver) {
+    public static void getAllSongs(ContentResolver contentResolver) {
 
-        ArrayList<Song> songs;
         Uri uri = MediaStore.Audio.Media.EXTERNAL_CONTENT_URI;
 
         String[] columns = {MediaStore.Audio.Media._ID,
@@ -33,17 +30,20 @@ public class AudioUtil {
                 MediaStore.Audio.Media.YEAR,//年份
                 MediaStore.Audio.Media.MIME_TYPE,//类型
                 MediaStore.Audio.Media.SIZE,//文件类型
-                MediaStore.Audio.Media.DATA};//文件路径url
+                MediaStore.Audio.Media.DATA,//文件路径url
+                MediaStore.Audio.Media.IS_MUSIC//判断是否为音乐
+        };
 
-        String sql = MediaStore.Audio.Media.MIME_TYPE + "=? or "
-                + MediaStore.Audio.Media.MIME_TYPE + "=? ";
+        String sql = "(" + MediaStore.Audio.Media.MIME_TYPE + "=? or "
+                + MediaStore.Audio.Media.MIME_TYPE + "=? or "
+                + MediaStore.Audio.Media.MIME_TYPE + "=?"
+                + ") and "
+                + MediaStore.Audio.Media.DURATION + " > 60000";
 
-        String[] args = {"audio/mpeg", "audio/x-ms-wma"};
-
+        String[] args = {"audio/mpeg", "audio/x-ms-wma", "audio/flac"};
 
         Cursor cursor = contentResolver.query(uri, columns, sql, args, null);
 
-        songs = new ArrayList<>();
 
         if (cursor != null && cursor.moveToFirst()) {
 
@@ -51,38 +51,38 @@ public class AudioUtil {
 
             do {
                 song = new Song();
-
                 // 歌曲名
                 String songName = cursor.getString(2);
                 //歌手名
                 String artist = cursor.getString(4);
                 //时长
                 int size = cursor.getInt(3);
+
                 // 专辑名
                 String album = cursor.getString(5);
-
-                int id = cursor.getInt(0);
-                LogUtil.d("search123", id + "");
 
                 song.setmSize(size);
                 song.setmSongName(songName);
                 song.setmArtist(artist);
                 song.setmAlbum(album);
 
-                song.setId(id);
                 // 文件路径
                 if (cursor.getString(9) != null) {
                     song.setmFileUrl(cursor.getString(9));
                 }
 
-                song.save();
-                songs.add(song);
+                if (song.isSaved()) {
+                    Song savedSong = DataSupport.where("mSongName", song.getmSongName())
+                            .find(Song.class).get(0);
+                    song.update(savedSong.getId());
+                } else {
+                    song.save();
+                }
+
             } while (cursor.moveToNext());
 
             cursor.close();
-
         }
-        return songs;
     }
 
 }

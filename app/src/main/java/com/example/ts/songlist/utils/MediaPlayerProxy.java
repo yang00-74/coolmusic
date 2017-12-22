@@ -5,10 +5,10 @@ import android.media.MediaPlayer;
 import java.io.IOException;
 
 public class MediaPlayerProxy {
-    private MediaPlayer mMediaPlayer;
-    private MediaPlayerStatus mStatus;
 
-    private OnCompletionListener mOnCompletionListener;
+    private MediaPlayer mMediaPlayer;
+
+    private MediaPlayerStatus mStatus;
 
     public MediaPlayerProxy() {
         mMediaPlayer = new MediaPlayer();
@@ -20,46 +20,46 @@ public class MediaPlayerProxy {
         mStatus = MediaPlayerStatus.IDLE;
     }
 
-    public void pause(){
+    public void pause() {
         mMediaPlayer.pause();
-        mStatus=MediaPlayerStatus.PAUSED;
+        mStatus = MediaPlayerStatus.PAUSED;
     }
 
-    public void seekTo(int progress){
+    public void seekTo(int progress) {
         mMediaPlayer.seekTo(progress);
     }
 
-    public void setDataSource(String url){
+    public void setDataSource(String url) {
         try {
             mMediaPlayer.setDataSource(url);
-            mStatus=MediaPlayerStatus.INITIALIZED;
+            mStatus = MediaPlayerStatus.INITIALIZED;
         } catch (IOException e) {
             e.printStackTrace();
         }
     }
 
-    public void prepare(){
+    public void prepare() {
         try {
             mMediaPlayer.prepare();
-            mStatus=MediaPlayerStatus.PREPARED;
+            mStatus = MediaPlayerStatus.PREPARED;
         } catch (IOException e) {
             e.printStackTrace();
         }
     }
 
     public void start() {
-            mMediaPlayer.start();
-            mStatus = MediaPlayerStatus.STARTED;
+        mMediaPlayer.start();
+        mStatus = MediaPlayerStatus.STARTED;
     }
 
-    public void stop(){
+    public void stop() {
         mMediaPlayer.stop();
-        mStatus=MediaPlayerStatus.STOPPED;
+        mStatus = MediaPlayerStatus.STOPPED;
     }
 
-    public void release(){
+    public void release() {
         mMediaPlayer.release();
-        mStatus=MediaPlayerStatus.IDLE;
+        mStatus = MediaPlayerStatus.IDLE;
     }
 
     public MediaPlayerStatus getStatus() {
@@ -75,24 +75,17 @@ public class MediaPlayerProxy {
         PAUSED,
     }
 
-    public MediaPlayer getMediaPlayer(){
+    public MediaPlayer getMediaPlayer() {
         return mMediaPlayer;
     }
 
-    public int getCurrentPosition(){
+    public int getCurrentPosition() {
         return mMediaPlayer.getCurrentPosition();
     }
 
-    public int getDuration(){
+    public int getDuration() {
         return mMediaPlayer.getDuration();
     }
 
-    public interface OnCompletionListener extends MediaPlayer.OnCompletionListener{
-        @Override
-        void onCompletion(MediaPlayer mp);
-    }
-    public void  setOnCompletionListener(OnCompletionListener l){
-        mOnCompletionListener=l;
-    }
 
 }

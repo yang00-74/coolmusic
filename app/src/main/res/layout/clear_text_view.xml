@@ -16,7 +16,7 @@
         android:background="@null"
         android:ellipsize="none"
         android:gravity="center_vertical"
-        android:hint="搜索"
+        android:hint="@string/search"
         android:singleLine="true" />
 
     <ImageButton

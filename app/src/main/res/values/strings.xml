@@ -1,11 +1,14 @@
 <resources>
     <string name="app_name">CoolMusic</string>
-    <string name="start_">播放</string>
-    <string name="stop_">停止</string>
-    <string name="preview_">上一曲</string>
-    <string name="next_">下一曲</string>
+    <string name="start">播放中</string>
+    <string name="stop">已暂停</string>
+    <string name="preview">上一曲</string>
+    <string name="next">下一曲</string>
     <string name="song_title">歌名</string>
     <string name="time">时长</string>
+    <string name="progress">播放</string>
+    <string name="search">搜索</string>
+    <string name="line">-</string>
 
     <!-- TODO: Remove or change this placeholder text -->
     <string name="hello_blank_fragment">Hello blank fragment</string>

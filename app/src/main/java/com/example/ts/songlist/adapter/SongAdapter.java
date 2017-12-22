@@ -1,6 +1,7 @@
-package com.example.ts.songlist.utils;
+package com.example.ts.songlist.adapter;
 
 import android.content.Context;
+import android.graphics.Color;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -14,14 +15,18 @@ import java.util.List;
 
 /**
  * Created by ts on 17-11-22.
+ * It is created to adapter the song class
  */
 
 public class SongAdapter extends ArrayAdapter<Song> {
+
     private int resourceId;
+    private int selectedPosition;
 
     public SongAdapter(Context context, int textViewResourceId, List<Song> obj) {
         super(context, textViewResourceId, obj);
         resourceId = textViewResourceId;
+        selectedPosition = -1;
     }
 
     @Override
@@ -41,11 +46,20 @@ public class SongAdapter extends ArrayAdapter<Song> {
             viewHolder = (ViewHolder) view.getTag();
         }
 
+        if (selectedPosition == position) {
+            viewHolder.songName.setTextColor(Color.RED);
+        } else {
+            viewHolder.songName.setTextColor(Color.BLACK);
+        }
         viewHolder.songName.setText(song.getmSongName());
         viewHolder.artist.setText(song.getmArtist());
         viewHolder.desc.setText(song.getmAlbum());
 
         return view;
+    }
+
+    public void setSelectedPosition(int selectedPosition) {
+        this.selectedPosition = selectedPosition;
     }
 
     private class ViewHolder {
