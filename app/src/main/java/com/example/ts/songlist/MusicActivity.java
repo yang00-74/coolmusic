@@ -175,12 +175,7 @@ public class MusicActivity extends BasicActivity implements View.OnClickListener
         swipeRefreshLayout.setOnRefreshListener(new SwipeRefreshLayout.OnRefreshListener() {
             @Override
             public void onRefresh() {
-                if (bingPic != null) {
-                    Glide.with(MusicActivity.this).load(bingPic).into(bingPicImg);
-                    swipeRefreshLayout.setRefreshing(false);
-                } else {
-                    loadBingPic();
-                }
+                loadBingPic();
 
             }
         });

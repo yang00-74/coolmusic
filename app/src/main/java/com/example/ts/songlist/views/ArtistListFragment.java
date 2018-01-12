@@ -22,7 +22,6 @@ import java.util.List;
 
 /**
  * Created by ts on 17-12-21.
- *
  */
 
 public class ArtistListFragment extends Fragment {

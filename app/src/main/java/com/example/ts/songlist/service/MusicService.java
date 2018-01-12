@@ -169,10 +169,6 @@ public class MusicService extends Service implements Serializable {
 
         mSong = DataSupport.find(Song.class, mCurrentPosition);
 
-        Intent intent = new Intent(MUSICID);
-        intent.putExtra(MUSICID, mCurrentPosition - 1);
-        sendBroadcast(intent);
-
         String url = mSong.getmFileUrl();
 
         if (mMediaPlayerProxy.getStatus() == MediaPlayerProxy.MediaPlayerStatus.STARTED) {
@@ -348,6 +344,10 @@ public class MusicService extends Service implements Serializable {
                     mHandler.removeMessages(WHAT_UPDATE_NOTIFICATION);
                     Message msg = Message.obtain(mHandler, WHAT_UPDATE_NOTIFICATION);
                     msg.sendToTarget();
+
+                    Intent intent = new Intent(MUSICID);
+                    intent.putExtra(MUSICID, mCurrentPosition - 1);
+                    sendBroadcast(intent);
 
                     try {
                         Thread.sleep(200);

@@ -26,7 +26,7 @@ public class SongsManager {
     private Set<Artist> mSet = new TreeSet<>();
 
     //search all local music file to initialize the database
-    void init() {
+    public void init() {
         AudioUtil.getAllSongs(getContext().getContentResolver());
     }
 
@@ -51,6 +51,7 @@ public class SongsManager {
             } while (cursor.moveToNext());
             cursor.close();
         }
+        mArtists.clear();
         mArtists.addAll(mSet);
         return mArtists;
     }

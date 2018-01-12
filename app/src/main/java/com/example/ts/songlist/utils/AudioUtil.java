@@ -20,7 +20,6 @@ public class AudioUtil {
     public static void getAllSongs(ContentResolver contentResolver) {
 
         Uri uri = MediaStore.Audio.Media.EXTERNAL_CONTENT_URI;
-
         String[] columns = {MediaStore.Audio.Media._ID,
                 MediaStore.Audio.Media.DISPLAY_NAME,//文件名
                 MediaStore.Audio.Media.TITLE,//歌曲名

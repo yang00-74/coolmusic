@@ -50,14 +50,20 @@ public class MusicListFragment extends Fragment {
 
     private List<Song> mSongList = new ArrayList<>();
 
+    private int mPosition = -1;
+
     private BroadcastReceiver mReceiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
             if (MUSICID.equals(intent.getAction())) {
                 int position = intent.getIntExtra(MUSICID, 0);
-                mAdapter.setSelectedPosition(position);
-                mAdapter.notifyDataSetInvalidated();
+                if (mPosition != position) {
+                    mPosition = position;
+                    mAdapter.setSelectedPosition(mPosition);
+                    mAdapter.notifyDataSetInvalidated();
+                }
             }
+
         }
     };
 
@@ -135,17 +141,16 @@ public class MusicListFragment extends Fragment {
                 }
             }
         });
+
     }
 
     @Override
     public void onStart() {
         super.onStart();
-
         IntentFilter intentFilter = new IntentFilter();
         intentFilter.addAction(MUSICID);
         getActivity().registerReceiver(mReceiver, intentFilter);
     }
-
 
     @Override
     public void onDestroy() {
@@ -154,7 +159,8 @@ public class MusicListFragment extends Fragment {
     }
 
     public void showList() {
-
+        //Every time when the app run ,init the database
+        SongApplication.getSongsManager().init();
         mSongList = SongApplication.getSongsManager().findAllSong();
 
         for (Song song : mSongList) {

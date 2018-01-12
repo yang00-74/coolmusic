@@ -33,8 +33,11 @@ public class FragmentAdapter extends FragmentPagerAdapter {
     }
 
     @Override
-    public CharSequence getPageTitle(int position) {//选择性实现
-        return titleList.get(position);
+    public CharSequence getPageTitle(int position) {
+        if (position > 0 && position < titleList.size()) {
+            return titleList.get(position);
+        }
+        return titleList.get(0);
     }
 
 }
