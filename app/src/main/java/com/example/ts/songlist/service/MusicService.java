@@ -263,7 +263,7 @@ public class MusicService extends Service implements Serializable {
         notification.contentView = mRemoteViews;
         notification.bigContentView = mRemoteViews;
         notification.flags = Notification.FLAG_ONGOING_EVENT;
-
+        // startForeground(100,notification);
         mManager.notify(100, notification);
     }
 
