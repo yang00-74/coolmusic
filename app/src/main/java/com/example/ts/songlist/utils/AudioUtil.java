@@ -35,11 +35,12 @@ public class AudioUtil {
 
         String sql = "(" + MediaStore.Audio.Media.MIME_TYPE + "=? or "
                 + MediaStore.Audio.Media.MIME_TYPE + "=? or "
-                + MediaStore.Audio.Media.MIME_TYPE + "=?"
+                + MediaStore.Audio.Media.MIME_TYPE + "=? or "
+                + MediaStore.Audio.Media.IS_MUSIC + "=?"
                 + ") and "
                 + MediaStore.Audio.Media.DURATION + " > 60000";
 
-        String[] args = {"audio/mpeg", "audio/x-ms-wma", "audio/flac"};
+        String[] args = {"audio/mpeg", "audio/x-ms-wma", "audio/flac", "1"};
 
         Cursor cursor = contentResolver.query(uri, columns, sql, args, null);
 

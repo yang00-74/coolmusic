@@ -350,7 +350,7 @@ public class MusicService extends Service implements Serializable {
                     sendBroadcast(intent);
 
                     try {
-                        Thread.sleep(200);
+                        Thread.sleep(400);
                     } catch (InterruptedException e) {
                         e.printStackTrace();
                     }

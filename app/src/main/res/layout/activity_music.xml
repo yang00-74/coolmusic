@@ -78,7 +78,7 @@
                             android:layout_width="0dp"
                             android:layout_height="24dp"
                             android:layout_gravity="center_horizontal"
-                            android:layout_weight="8"
+                            android:layout_weight="7"
                             android:maxHeight="8dp"
                             android:progress="0"
                             android:progressDrawable="@drawable/bg_seekbar"
